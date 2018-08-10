@@ -90,7 +90,7 @@ var _ = Describe("Traces http request timing", func() {
 		Expect(tr.Total().Seconds()).To(BeZero())
 	})
 
-	It("Total returns negative values when Finish is not called", func() {
+	It("Total doesnt blow up even if Finish is not called", func() {
 		req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 		Expect(err).To(BeNil())
 		req, tr := tracer.AsTraceableReq(req)
@@ -102,8 +102,8 @@ var _ = Describe("Traces http request timing", func() {
 
 		Expect(tr.DNSLookup().String()).ToNot(BeEmpty()) // could be skipped due to reuse
 		Expect(tr.TCPDialed().String()).ToNot(BeEmpty()) // could be reused
-		Expect(tr.ConnSetup().Seconds()).ToNot(BeZero())
-		Expect(tr.PreTransfer().Seconds()).ToNot(BeZero())
+		Expect(tr.ConnSetup().String()).ToNot(BeEmpty())
+		Expect(tr.PreTransfer().String()).ToNot(BeEmpty())
 		Expect(tr.ServerProcessing().Seconds()).ToNot(BeZero())
 		Expect(tr.ContentTransfer().Seconds()).ToNot(BeZero())
 		Expect(tr.Total().String()).ToNot(BeEmpty())

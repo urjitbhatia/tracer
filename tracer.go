@@ -85,11 +85,13 @@ func AsTraceableReq(req *http.Request) (*http.Request, *Tracer) {
 	}
 
 	trace := &httptrace.ClientTrace{
-		DNSStart: func(_ httptrace.DNSStartInfo) { tr.dnsStart = time.Now() },
+		DNSStart: func(_ httptrace.DNSStartInfo) {
+			tr.dnsStart = time.Now()
+		},
 		DNSDone: func(_ httptrace.DNSDoneInfo) {
 			tr.dnsDone = time.Now()
 			if tr.dnsStart.IsZero() {
-				tr.dnsStart = tr.dnsDone // dns was skipped
+				tr.dnsStart = tr.dnsDone
 			}
 		},
 		ConnectStart: func(_, _ string) {
@@ -97,14 +99,29 @@ func AsTraceableReq(req *http.Request) (*http.Request, *Tracer) {
 			if tr.dnsDone.IsZero() {
 				// dns skipped
 				tr.dnsDone = tr.tcpConnStart
-			}
-			if tr.dnsStart.IsZero() {
 				tr.dnsStart = tr.tcpConnStart
 			}
 		},
-		ConnectDone:          func(net, addr string, err error) { tr.tcpConnDone = time.Now() },
-		GotConn:              func(_ httptrace.GotConnInfo) { tr.gotConn = time.Now() },
-		GotFirstResponseByte: func() { tr.firstByte = time.Now() },
+		ConnectDone: func(net, addr string, err error) {
+			tr.tcpConnDone = time.Now()
+			if tr.tcpConnStart.IsZero() {
+				tr.dnsDone = tr.tcpConnDone
+				tr.dnsStart = tr.tcpConnDone
+				tr.tcpConnStart = tr.tcpConnDone
+			}
+		},
+		GotConn: func(_ httptrace.GotConnInfo) {
+			tr.gotConn = time.Now()
+			if tr.tcpConnStart.IsZero() {
+				tr.dnsDone = tr.gotConn
+				tr.dnsStart = tr.gotConn
+				tr.tcpConnStart = tr.gotConn
+				tr.tcpConnDone = tr.gotConn
+			}
+		},
+		GotFirstResponseByte: func() {
+			tr.firstByte = time.Now()
+		},
 	}
 
 	return req.WithContext(httptrace.WithClientTrace(context.Background(), trace)), tr
