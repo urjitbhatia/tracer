@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 
@@ -49,7 +50,7 @@ var _ = Describe("Traces http request timing", func() {
 			resp.Body.Close()
 			tr.Finish()
 
-			Expect(tr.DNSLookup().Seconds()).ToNot(BeZero())
+			Expect(tr.DNSLookup().String()).ToNot(BeEmpty())
 			Expect(tr.TCPDialed().Seconds()).ToNot(BeZero())
 			Expect(tr.ConnSetup().Seconds()).ToNot(BeZero())
 			Expect(tr.PreTransfer().Seconds()).ToNot(BeZero())
@@ -57,6 +58,9 @@ var _ = Describe("Traces http request timing", func() {
 			Expect(tr.ServerProcessing().Seconds()).ToNot(BeZero())
 			Expect(tr.ContentTransfer().Seconds()).ToNot(BeZero())
 			Expect(tr.Total().Seconds()).ToNot(BeZero())
+
+			log.Printf("Tracer stats: %s", tr)
+			Expect(tr.String()).To(ContainSubstring("dnsLookup"))
 		}
 	})
 
@@ -84,5 +88,24 @@ var _ = Describe("Traces http request timing", func() {
 		Expect(tr.ServerProcessing().Seconds()).To(BeZero())
 		Expect(tr.ContentTransfer().Seconds()).To(BeZero())
 		Expect(tr.Total().Seconds()).To(BeZero())
+	})
+
+	It("Total returns negative values when Finish is not called", func() {
+		req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+		Expect(err).To(BeNil())
+		req, tr := tracer.AsTraceableReq(req)
+
+		client := http.Client{}
+		resp, err := client.Do(req)
+		Expect(err).To(BeNil())
+		resp.Body.Close()
+
+		Expect(tr.DNSLookup().String()).ToNot(BeEmpty()) // could be skipped due to reuse
+		Expect(tr.TCPDialed().String()).ToNot(BeEmpty()) // could be reused
+		Expect(tr.ConnSetup().Seconds()).ToNot(BeZero())
+		Expect(tr.PreTransfer().Seconds()).ToNot(BeZero())
+		Expect(tr.ServerProcessing().Seconds()).ToNot(BeZero())
+		Expect(tr.ContentTransfer().Seconds()).ToNot(BeZero())
+		Expect(tr.Total().String()).ToNot(BeEmpty())
 	})
 })

@@ -2,6 +2,7 @@ package tracer
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptrace"
 	"time"
@@ -67,6 +68,13 @@ func (t *Tracer) Total() time.Duration {
 	return t.bodyReadDone.Sub(t.dnsStart)
 }
 
+// String representation
+func (t *Tracer) String() string {
+	return fmt.Sprintf(`{"total":%f,"dnsLookup":%f, "tcpDialed":%f, "connSetup":%f, "preTransfer":%f, "ttfb":%f, "serverProcessing":%f, "contentTransfer":%f}`,
+		t.Total().Seconds(), t.DNSLookup().Seconds(), t.TCPDialed().Seconds(), t.ConnSetup().Seconds(),
+		t.PreTransfer().Seconds(), t.TimeToFirstByte().Seconds(), t.ServerProcessing().Seconds(), t.ContentTransfer().Seconds())
+}
+
 // AsTraceableReq wraps a given *http.Request with tracing timers and returns the wrapped request
 // Use the returned Tracer value to query for various timing values that were recorded
 func AsTraceableReq(req *http.Request) (*http.Request, *Tracer) {
@@ -78,11 +86,20 @@ func AsTraceableReq(req *http.Request) (*http.Request, *Tracer) {
 
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(_ httptrace.DNSStartInfo) { tr.dnsStart = time.Now() },
-		DNSDone:  func(_ httptrace.DNSDoneInfo) { tr.dnsDone = time.Now() },
+		DNSDone: func(_ httptrace.DNSDoneInfo) {
+			tr.dnsDone = time.Now()
+			if tr.dnsStart.IsZero() {
+				tr.dnsStart = tr.dnsDone // dns was skipped
+			}
+		},
 		ConnectStart: func(_, _ string) {
 			tr.tcpConnStart = time.Now()
 			if tr.dnsDone.IsZero() {
+				// dns skipped
 				tr.dnsDone = tr.tcpConnStart
+			}
+			if tr.dnsStart.IsZero() {
+				tr.dnsStart = tr.tcpConnStart
 			}
 		},
 		ConnectDone:          func(net, addr string, err error) { tr.tcpConnDone = time.Now() },
