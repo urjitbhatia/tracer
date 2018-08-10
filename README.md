@@ -7,7 +7,7 @@ Just as any other instrumentation tool, don't keep this running in production fo
 ```golang
 import "github.com/urjitbhatia/tracer"
 
-req, _ := http.NewRequest(http.MethodGet, "http://localhost/foo", body)
+req, _ := http.NewRequest(http.MethodGet, "http://golang.org", body)
 req, tr = tracer.AsTraceableReq(req)
 // ...
 resp, err := client.Do(req)
@@ -20,7 +20,10 @@ resp.Body.Close()
 tr.Finish()
 
 // ..
-log.Printlf("Time taken to get connection for request: %v", tr.ConnSetup())
+log.Printlf("Tracer stats: %v", tr)
+```
+```
+2018/08/10 06:23:48 Tracer stats: {"total":1.917301,"dnsLookup":0.526224, "tcpDialed":0.170330, "connSetup":0.684807, "preTransfer":1.211031, "ttfb":1.917138, "serverProcessing":0.706107, "contentTransfer":0.000162}
 ```
 
 ##### If you see bugs, please feel free to post issues.
