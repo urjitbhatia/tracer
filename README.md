@@ -7,7 +7,7 @@ Just as any other instrumentation tool, don't keep this running in production fo
 ```golang
 import "github.com/urjitbhatia/tracer"
 
-req, _ := http.NewReques(http.MethodGet, "http://localhost/foo", body)
+req, _ := http.NewRequest(http.MethodGet, "http://localhost/foo", body)
 req, tr = tracer.AsTraceableReq(req)
 // ...
 resp, err := client.Do(req)
