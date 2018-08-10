@@ -1,7 +1,9 @@
 # tracer
 Annotate a golang http request to trace time taken at various steps.
 
-Just as any other instrumentation tool, don't keep this running in production forever without understanding the cost. If you are doing a lot of requests, this might have some (tiny) impact.
+Heavily inspired by https://github.com/davecheney/httpstat :)
+
+Note: Just as any other instrumentation tool, don't keep this running in production forever without understanding the cost. If you are doing a lot of requests, this might have some (tiny) impact.
 
 # Usage:
 ```golang
